@@ -1,14 +1,16 @@
-#include "FromForum.hpp"
+#include "PlayerFromForum.hpp"
 
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <iterator>
 #include <pugixml.hpp>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/regex.hpp>
@@ -23,6 +25,7 @@
 #include "Pitching.hpp"
 #include "Player.hpp"
 #include "Tidy.hpp"
+#include "Xml.hpp"
 
 
 using AttributeMap = std::unordered_map<std::string, std::string>;
@@ -37,17 +40,6 @@ auto valueOr(Container const& container, Key const& key, Value const& defaultVal
     return container.at(key);
 }
 
-
-auto parseXmlString(std::string_view text) -> pugi::xml_document {
-    using namespace std::literals;
-
-    pugi::xml_document doc;
-    auto const result = doc.load_string(text.data());
-    if (!result) {
-        throw std::runtime_error { fmt::format("Failed to parse XML: {}"sv, result.description()) };
-    }
-    return doc;
-}
 
 auto deparenthesize(std::string const& str) -> std::string {
     // possible TODO: use a Finder instead of a regex
@@ -77,7 +69,7 @@ auto readAttributes(pugi::xpath_node_set const& nodes) -> AttributeMap {
           "Player Render"sv,
           "Discord name"sv,
         });
-        if (std::any_of(std::begin(toIgnore), std::end(toIgnore),
+        if (std::any_of(std::cbegin(toIgnore), std::cend(toIgnore),
                         [&text](auto const& s) { return boost::contains(text, s); })) {
             continue;
         }
@@ -100,13 +92,106 @@ auto readAttributes(pugi::xpath_node_set const& nodes) -> AttributeMap {
 
         auto const finder = boost::first_finder(delimiter);
         auto pieces = boost::make_split_iterator(text, finder);
-        auto const key = boost::trim_copy(std::string { std::begin(*pieces), std::end(*pieces) });
+        while (std::cbegin(*pieces) == std::cend(*pieces)) {
+            ++pieces;
+        }
+
+        auto const key = boost::trim_copy(std::string { std::cbegin(*pieces), std::cend(*pieces) });
         ++pieces;
-        auto const value = boost::trim_copy(std::string { std::begin(*pieces), std::end(*pieces) });
+        while (std::cbegin(*pieces) == std::cend(*pieces)) {
+            ++pieces;
+        }
+
+        auto const value = boost::trim_copy(std::string { std::cbegin(*pieces), std::cend(*pieces) });
+
         attributes[key] = value;
     }
 
     return attributes;
+}
+
+auto readName(AttributeMap const& info) -> std::string {
+    using namespace std::literals;
+
+    if (info.contains("Player Name"s)) {
+        return info.at("Player Name"s);
+    }
+
+    if (info.contains("Name"s)) {
+        return info.at("Name"s);
+    }
+
+    if (info.contains("First Name"s) and info.contains("Last Name"s)) {
+        return fmt::format("{} {}", info.at("First Name"s), info.at("Last Name"s));
+    }
+
+    throw std::runtime_error { "Failed to read player name" };
+}
+
+auto isPitcher(Position position) -> bool {
+    switch (position) {
+    case Position::StartingPitcher:
+    case Position::ReliefPitcher:
+    case Position::ClosingPitcher:
+        return true;
+    default:
+        return false;
+    }
+}
+
+auto isPitcher(AttributeMap const& info) -> bool {
+    using namespace std::literals;
+
+    if (info.contains("Position"s)) {
+        return isPitcher(read<Position>(info.at("Position"s)));
+    }
+    if (info.contains("Hitting Archetype"s)) {
+        return false;
+    }
+    if (info.contains("Bats"s)) {
+        return false;
+    }
+    if (info.contains("Hitting"s)) {
+        return false;
+    }
+    if (info.contains("Velocity"s)) {
+        return true;
+    }
+    if (info.contains("Speed"s)) {
+        return false;
+    }
+    if (info.contains("Player Archetype"s)) {
+        return true;
+    }
+    if (info.contains("Stamina"s)) {
+        return true;
+    }
+
+    throw std::runtime_error { fmt::format("Failed to determine if player is a pitcher: {}"sv, readName(info)) };
+}
+
+auto isDayOfWeek(std::string_view str) -> bool {
+    using namespace std::literals;
+
+    static std::unordered_set const days {
+        "Mon"sv, "Tue"sv, "Wed"sv, "Thu"sv, "Fri"sv, "Sat"sv, "Sun"sv,
+    };
+    return days.contains(str);
+}
+
+
+auto readBirthdate(std::string_view str) -> std::chrono::month_day {
+    std::istringstream in { std::string { str } };
+    std::string word {};
+    in >> word;
+
+    if (isDayOfWeek(word)) {
+        std::string text {};
+        std::getline(in, text);
+        return read<std::chrono::month_day>(text);
+    }
+
+    return read<std::chrono::month_day>(str);
 }
 
 auto readCommon(AttributeMap const& info) -> CommonAttributes {
@@ -115,13 +200,14 @@ auto readCommon(AttributeMap const& info) -> CommonAttributes {
     // Things break if I `return CommonAttributes { ... }` instead of creating a local variable.
     // idk why, but that's the reason I'm doing it this way here and in a few other functions.
     CommonAttributes result {
-        .name = info.at("Player Name"s),
-        .birthdate = read<std::chrono::year_month_day>(info.at("Birthdate"s)),
+        .name = readName(info),
+        .birthdate = readBirthdate(valueOr(info, "Birthdate"s, "1970-01-01"s)),
         .birthplace = info.at("Birthplace"s),
         .heightCm = read<Height>(info.at("Height"s)).cm,
         .weightLb = read<int>(info.at("Weight"s)),
         .throwingHandedness = read<ThrowingHandedness>(info.at("Throws"s)),
-        .position = read<Position>(info.at("Position"s)),
+        // TODO: something better than this needed
+        .position = read<Position>(valueOr(info, "Position"s, "SS"s)),
     };
 
     return result;
@@ -167,7 +253,7 @@ auto readBatting(AttributeMap const& info) -> BattingAttributes {
 auto readBaseFieldingExperience(AttributeMap const& info) -> FieldingExperience {
     using namespace std::literals;
 
-    auto const archetype = info.at("Archetype"s);
+    auto const archetype = info.at("Hitting Archetype"s);
     if (archetype == "Mr. Utility"sv) {
         return mrUtilityFieldingExp;
     }
@@ -279,26 +365,13 @@ auto readPitcher(AttributeMap const& info) -> Player {
 }
 
 auto readPlayer(AttributeMap const& info) -> Player {
-    switch (read<Position>(info.at("Position"))) {
-    case Position::StartingPitcher:
-    case Position::ReliefPitcher:
-    case Position::ClosingPitcher:
-        return readPitcher(info);
-    case Position::Catcher:
-    case Position::FirstBase:
-    case Position::SecondBase:
-    case Position::ThirdBase:
-    case Position::Shortstop:
-    case Position::LeftField:
-    case Position::CenterField:
-    case Position::RightField:
-    case Position::DesignatedHitter: {
-        auto result = readBatter(info);
+    if (isPitcher(info)) {
+        auto result = readPitcher(info);
         return result;
     }
-    }
 
-    throw std::runtime_error { fmt::format("Failed to parse player page: unknown position: {}", info.at("Position")) };
+    auto result = readBatter(info);
+    return result;
 }
 
 auto readPlayer(pugi::xpath_node_set const& post) -> Player {
@@ -309,7 +382,7 @@ auto readPlayer(pugi::xpath_node_set const& post) -> Player {
 auto readPlayer(pugi::xml_document const& rosterPage) -> Player {
     using namespace std::literals;
 
-    static constexpr auto path { "//table[@border='1'][1]/tr[2]//text()"sv };
+    static constexpr auto path = "//table[@border='1'][1]/tr[2]//text()"sv;
     auto const nodes = rosterPage.select_nodes(path.data());
     auto result = readPlayer(nodes);
     return result;
@@ -326,9 +399,8 @@ auto readPlayer(cpr::Url const& url) -> Player {
 auto readPlayer(int topicId) -> Player {
     using namespace std::literals;
 
-    static constexpr auto urlPattern {
-        "https://probaseballexperience.jcink.net/index.php?act=Print&client=printer&t={}"sv
-    };
+    static constexpr auto urlPattern
+      = "https://probaseballexperience.jcink.net/index.php?act=Print&client=printer&t={}"sv;
     auto result = readPlayer(fmt::format(urlPattern, topicId));
     return result;
 }

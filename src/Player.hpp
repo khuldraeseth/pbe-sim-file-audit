@@ -24,7 +24,7 @@ auto read<ThrowingHandedness>(std::string_view str) -> ThrowingHandedness;
 
 struct CommonAttributes {
     std::string name;
-    std::chrono::year_month_day birthdate;
+    std::chrono::month_day birthdate;
     std::string birthplace;
     int heightCm;
     int weightLb;   // wtf, OOTP

@@ -6,7 +6,8 @@
 
 #include "Read.hpp"
 
-auto show(std::chrono::year_month_day date) -> std::string;
+
+auto show(std::chrono::month_day date) -> std::string;
 
 template <>
-auto read<std::chrono::year_month_day>(std::string_view str) -> std::chrono::year_month_day;
+auto read<std::chrono::month_day>(std::string_view str) -> std::chrono::month_day;

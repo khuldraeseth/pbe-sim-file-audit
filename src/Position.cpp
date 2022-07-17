@@ -1,11 +1,9 @@
 #include "Position.hpp"
 
-#include <algorithm>
-#include <array>
-#include <iterator>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 #include <fmt/core.h>
 
@@ -49,24 +47,42 @@ template <>
 auto read<Position>(std::string_view str) -> Position {
     using namespace std::literals;
 
-    static constexpr auto positions = std::to_array({
-      "SP"sv,
-      "RP"sv,
-      "CP"sv,
-      "C"sv,
-      "1B"sv,
-      "2B"sv,
-      "3B"sv,
-      "SS"sv,
-      "LF"sv,
-      "CF"sv,
-      "RF"sv,
-      "DH"sv,
-    });
+    static std::unordered_map<std::string_view, Position> const positions {
+        {               "SP"sv,  Position::StartingPitcher},
+        {               "RP"sv,    Position::ReliefPitcher},
+        {               "CP"sv,   Position::ClosingPitcher},
+        {                "C"sv,          Position::Catcher},
+        {               "1B"sv,        Position::FirstBase},
+        {               "2B"sv,       Position::SecondBase},
+        {               "3B"sv,        Position::ThirdBase},
+        {               "SS"sv,        Position::Shortstop},
+        {               "LF"sv,        Position::LeftField},
+        {               "CF"sv,      Position::CenterField},
+        {               "RF"sv,       Position::RightField},
+        {               "DH"sv, Position::DesignatedHitter},
 
-    auto const position = std::find(std::cbegin(positions), std::cend(positions), str);
-    if (position == std::cend(positions)) {
+        { "Starting Pitcher"sv,  Position::StartingPitcher},
+        {   "Relief Pitcher"sv,    Position::ReliefPitcher},
+        {  "Closing Pitcher"sv,   Position::ClosingPitcher},
+        {          "Catcher"sv,          Position::Catcher},
+        {       "First Base"sv,        Position::FirstBase},
+        {    "First Baseman"sv,        Position::FirstBase},
+        {      "Second Base"sv,       Position::SecondBase},
+        {   "Second Baseman"sv,       Position::SecondBase},
+        {       "Third Base"sv,        Position::ThirdBase},
+        {    "Third Baseman"sv,        Position::ThirdBase},
+        {        "Shortstop"sv,        Position::Shortstop},
+        {       "Left Field"sv,        Position::LeftField},
+        {     "Left Fielder"sv,        Position::LeftField},
+        {     "Center Field"sv,      Position::CenterField},
+        {   "Center Fielder"sv,      Position::CenterField},
+        {      "Right Field"sv,       Position::RightField},
+        {    "Right Fielder"sv,       Position::RightField},
+        {"Designated Hitter"sv, Position::DesignatedHitter},
+    };
+
+    if (not positions.contains(str)) {
         throw std::runtime_error { fmt::format("Failed to parse position: {}"sv, str) };
     }
-    return static_cast<Position>(position - std::cbegin(positions));
+    return positions.at(str);
 }
