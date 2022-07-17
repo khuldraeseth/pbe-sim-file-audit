@@ -1,6 +1,9 @@
 #include "Tidy.hpp"
 
 #include <iostream>
+#include <stdexcept>
+
+#include <fmt/core.h>
 
 
 namespace htmlTidy {
@@ -14,9 +17,6 @@ auto tidy(std::string_view text) -> std::string {
     htmlTidy::TidyBuffer out { nullptr, nullptr, 0, 0, 0 };
     htmlTidy::TidyBuffer err { nullptr, nullptr, 0, 0, 0 };
     htmlTidy::TidyDoc tdoc = htmlTidy::tidyCreate();
-
-    // printf("Tidying:\t%s\n", text.data());
-    // std::cout << "Tidying:\t" << text << std::endl;
 
     int rc = -1;
     bool ok = htmlTidy::tidyOptSetBool(tdoc, htmlTidy::TidyXhtmlOut, htmlTidy::yes) != 0U   // Convert to XHTML
@@ -42,16 +42,13 @@ auto tidy(std::string_view text) -> std::string {
         rc = htmlTidy::tidySaveBuffer(tdoc, &out);   // Pretty Print
     }
 
-    if (rc >= 0) {
-        if (rc > 0) {
-            // printf("\nDiagnostics:\n\n%s", err.bp);
-            std::cerr << "\nDiagnostics:\n\n" << err.bp << std::endl;
-        }
-        // printf("\nAnd here is the result:\n\n%s", out.bp);
-        // std::cout << "\nAnd here is the result:\n\n" << out.bp << std::endl;
-    } else {
-        // printf("A severe error (%d) occurred.\n", rc);
-        std::cerr << "A severe error (" << rc << ") occurred." << std::endl;
+    if (rc < 0) {
+        std::cerr << "Tidy failed: " << err.bp << std::endl;
+        // TODO: write RAII wrapper
+        htmlTidy::tidyBufFree(&out);
+        htmlTidy::tidyBufFree(&err);
+        htmlTidy::tidyRelease(tdoc);
+        throw std::runtime_error { fmt::format("A severe error occurred in tidy: {}", rc) };
     }
 
     std::string result { reinterpret_cast<char*>(out.bp) };
