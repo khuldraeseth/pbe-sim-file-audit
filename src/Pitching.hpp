@@ -1,5 +1,10 @@
 #pragma once
 
+#include <string>
+#include <string_view>
+
+#include "Read.hpp"
+
 
 enum class ArmSlot {
     OverTheTop,
@@ -8,11 +13,29 @@ enum class ArmSlot {
     Submarine,
 };
 
+auto show(ArmSlot slot) -> std::string;
+
+template <>
+auto read<ArmSlot>(std::string_view str) -> ArmSlot;
+
+
 struct PitchingAttributes {
     int velo { 0 };
     int stamina { 0 };
     int hold { 0 };
     ArmSlot armSlot { ArmSlot::Normal };
+
+    int movementL { 0 };
+    int movementR { 0 };
+    int movementPotential { 0 };
+    int controlL { 0 };
+    int controlR { 0 };
+    int controlPotential { 0 };
+    int hbp { 0 };
+    int wp { 0 };
+    int balk { 0 };
+    int gb { 0 };
+
 
     int fastball { 0 };
     int sinker { 0 };
@@ -26,17 +49,6 @@ struct PitchingAttributes {
     int screwball { 0 };
     int knuckleCurve { 0 };
     int knuckleball { 0 };
-
-    int movementL { 0 };
-    int movementR { 0 };
-    int movementPotential { 0 };
-    int controlL { 0 };
-    int controlR { 0 };
-    int controlPotential { 0 };
-    int hbp { 0 };
-    int wp { 0 };
-    int balk { 0 };
-    int gb { 0 };
 };
 
 
@@ -45,6 +57,17 @@ static constexpr PitchingAttributes batterPitching {
     .stamina = 1,
     .hold = 1,
     .armSlot = ArmSlot::Normal,
+
+    .movementL = 1,
+    .movementR = 1,
+    .movementPotential = 1,
+    .controlL = 1,
+    .controlR = 1,
+    .controlPotential = 1,
+    .hbp = 21,
+    .wp = 15,
+    .balk = 30,
+    .gb = 44,
 
     .fastball = 1,
     .sinker = 0,
@@ -58,15 +81,4 @@ static constexpr PitchingAttributes batterPitching {
     .screwball = 0,
     .knuckleCurve = 0,
     .knuckleball = 0,
-
-    .movementL = 1,
-    .movementR = 1,
-    .movementPotential = 1,
-    .controlL = 1,
-    .controlR = 1,
-    .controlPotential = 1,
-    .hbp = 21,
-    .wp = 15,
-    .balk = 30,
-    .gb = 44,
 };

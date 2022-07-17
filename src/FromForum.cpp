@@ -27,6 +27,16 @@
 
 using AttributeMap = std::unordered_map<std::string, std::string>;
 
+template <typename Container, typename Key = typename Container::key_type,
+          typename Value = typename Container::mapped_type>
+auto valueOr(Container const& container, Key const& key, Value const& defaultValue) -> Value {
+    if (not container.contains(key)) {
+        return defaultValue;
+    }
+
+    return container.at(key);
+}
+
 
 auto parseXmlString(std::string_view text) -> pugi::xml_document {
     using namespace std::literals;
@@ -205,9 +215,45 @@ auto readFielding(AttributeMap const& info) -> FieldingAttributes {
     return result;
 }
 
-auto readPitching(AttributeMap const&) -> PitchingAttributes {
-    // TODO
-    return {};
+auto readPitching(AttributeMap const& info) -> PitchingAttributes {
+    using namespace std::literals;
+
+    static constexpr auto defaultHbp = 5;
+    static constexpr auto defaultWp = 5;
+    static constexpr auto defaultBalk = 1;
+
+    PitchingAttributes result {
+        .velo = read<int>(info.at("Velocity"s)),
+        .stamina = read<int>(info.at("Stamina"s)),
+        .hold = read<int>(info.at("Holding Runners"s)),
+        .armSlot = read<ArmSlot>(info.at("Arm Slot"s)),
+
+        .movementL = read<int>(info.at("Movement vs LHB"s)),
+        .movementR = read<int>(info.at("Movement vs. RHB"s)),
+        .movementPotential = std::min(result.movementL, result.movementR),
+        .controlL = read<int>(info.at("Control vs. LHB"s)),
+        .controlR = read<int>(info.at("Control vs. RHB"s)),
+        .controlPotential = std::min(result.controlL, result.controlR),
+        .hbp = defaultHbp,
+        .wp = defaultWp,
+        .balk = defaultBalk,
+        .gb = read<int>(info.at("GB%"s)),
+
+        .fastball = read<int>(valueOr(info, "Fastball"s, "0"s)),
+        .sinker = read<int>(valueOr(info, "Sinker"s, "0"s)),
+        .cutter = read<int>(valueOr(info, "Cutter"s, "0"s)),
+        .curveball = read<int>(valueOr(info, "Curveball"s, "0"s)),
+        .slider = read<int>(valueOr(info, "Slider"s, "0"s)),
+        .changeup = read<int>(valueOr(info, "Changeup"s, "0"s)),
+        .splitter = read<int>(valueOr(info, "Splitter"s, "0"s)),
+        .forkball = read<int>(valueOr(info, "Forkball"s, "0"s)),
+        .circleChange = read<int>(valueOr(info, "Circle Change"s, "0"s)),
+        .screwball = read<int>(valueOr(info, "Screwball"s, "0"s)),
+        .knuckleCurve = read<int>(valueOr(info, "Knuckle Curve"s, "0"s)),
+        .knuckleball = read<int>(valueOr(info, "Knuckleball"s, "0"s)),
+    };
+
+    return result;
 }
 
 auto readBatter(AttributeMap const& info) -> Player {
