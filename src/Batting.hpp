@@ -1,18 +1,35 @@
 #pragma once
 
+#include <string>
+#include <string_view>
 
-enum class GbType {
+#include "Read.hpp"
+
+
+enum class GbTendency {
     Spray,
     Normal,
     Pull,
     ExtremePull,
 };
 
-enum class FbType {
+auto show(GbTendency tendency) -> std::string;
+
+template <>
+auto read<GbTendency>(std::string_view str) -> GbTendency;
+
+
+enum class FbTendency {
     Spray,
     Normal,
     Pull,
 };
+
+auto show(FbTendency tendency) -> std::string;
+
+template <>
+auto read<FbTendency>(std::string_view str) -> FbTendency;
+
 
 struct BattingAttributes {
     int babipL { 0 };
@@ -37,8 +54,8 @@ struct BattingAttributes {
     int buntSac { 0 };
     int buntHit { 0 };
 
-    GbType gbType { GbType::Normal };
-    FbType fbType { FbType::Normal };
+    GbTendency gbTendency { GbTendency::Normal };
+    FbTendency fbTendency { FbTendency::Normal };
 };
 
 
@@ -66,6 +83,6 @@ static constexpr BattingAttributes pitcherBatting {
     .buntSac = 1,
     .buntHit = 1,
 
-    .gbType = GbType::Normal,
-    .fbType = FbType::Normal,
+    .gbTendency = GbTendency::Normal,
+    .fbTendency = FbTendency::Normal,
 };

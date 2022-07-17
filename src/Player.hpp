@@ -7,6 +7,7 @@
 #include "Batting.hpp"
 #include "Fielding.hpp"
 #include "Pitching.hpp"
+#include "Position.hpp"
 #include "Read.hpp"
 
 
@@ -16,7 +17,7 @@ enum class BattingHandedness {
     Switch,
 };
 
-auto show(BattingHandedness const& handedness) -> std::string;
+auto show(BattingHandedness handedness) -> std::string;
 
 template <>
 auto read<BattingHandedness>(std::string_view str) -> BattingHandedness;
@@ -27,31 +28,10 @@ enum class ThrowingHandedness {
     Right,
 };
 
-auto show(ThrowingHandedness const& handedness) -> std::string;
+auto show(ThrowingHandedness handedness) -> std::string;
 
 template <>
 auto read<ThrowingHandedness>(std::string_view str) -> ThrowingHandedness;
-
-
-enum class Position {
-    StartingPitcher,
-    ReliefPitcher,
-    ClosingPitcher,
-    Catcher,
-    FirstBase,
-    SecondBase,
-    ThirdBase,
-    Shortstop,
-    LeftField,
-    CenterField,
-    RightField,
-    DesignatedHitter,
-};
-
-auto show(Position position) -> std::string;
-
-template <>
-auto read<Position>(std::string_view str) -> Position;
 
 
 struct CommonAttributes {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Position.hpp"
+
 
 struct FieldingExperience {
     int expPitcher { 0 };
@@ -11,6 +13,8 @@ struct FieldingExperience {
     int expLF { 0 };
     int expCF { 0 };
     int expRF { 0 };
+
+    auto operator[](Position position) -> int&;
 };
 
 struct FieldingAttributes {
@@ -27,6 +31,18 @@ struct FieldingAttributes {
     FieldingExperience experience {};
 };
 
+
+static constexpr FieldingExperience mrUtilityFieldingExp {
+    .expPitcher = 75,
+    .expCatcher = 75,
+    .exp1B = 75,
+    .exp2B = 75,
+    .exp3B = 75,
+    .expSS = 75,
+    .expLF = 75,
+    .expCF = 75,
+    .expRF = 75,
+};
 
 static constexpr FieldingExperience pitcherFieldingExp {
     .expPitcher = 200,

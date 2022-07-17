@@ -18,13 +18,14 @@
 
 #include "Batting.hpp"
 #include "Date.hpp"
+#include "Fielding.hpp"
 #include "Height.hpp"
 #include "Pitching.hpp"
 #include "Player.hpp"
 #include "Tidy.hpp"
 
 
-using AttributeMap = std::map<std::string, std::string>;
+using AttributeMap = std::unordered_map<std::string, std::string>;
 
 
 auto parseXmlString(std::string_view text) -> pugi::xml_document {
@@ -101,11 +102,9 @@ auto readAttributes(pugi::xpath_node_set const& nodes) -> AttributeMap {
 auto readCommon(AttributeMap const& info) -> CommonAttributes {
     using namespace std::literals;
 
-    // for (auto const& [key, value] : info) {
-    //     std::cout << key << ": " << value << std::endl;
-    // }
-
-    auto result = CommonAttributes {
+    // Things break if I `return CommonAttributes { ... }` instead of creating a local variable.
+    // idk why, but that's the reason I'm doing it this way here and in a few other functions.
+    CommonAttributes result {
         .name = info.at("Player Name"s),
         .birthdate = read<std::chrono::year_month_day>(info.at("Birthdate"s)),
         .birthplace = info.at("Birthplace"s),
@@ -119,14 +118,90 @@ auto readCommon(AttributeMap const& info) -> CommonAttributes {
     return result;
 }
 
-auto readBatting(AttributeMap const&) -> BattingAttributes {
-    // TODO
-    return {};
+auto readBatting(AttributeMap const& info) -> BattingAttributes {
+    using namespace std::literals;
+
+    static constexpr auto defaultHbp = 5;
+
+    BattingAttributes result {
+        .babipL = read<int>(info.at("BABIP vs LHP"s)),
+        .babipR = read<int>(info.at("BABIP vs RHP"s)),
+        .babipPotential = std::min(result.babipL, result.babipR),
+        .avoidKL = read<int>(info.at("Avoid K's vs LHP"s)),
+        .avoidKR = read<int>(info.at("Avoid K's vs RHP"s)),
+        .avoidKPotential = std::min(result.avoidKL, result.avoidKR),
+        .gapL = read<int>(info.at("Gap vs LHP"s)),
+        .gapR = read<int>(info.at("Gap vs RHP"s)),
+        .gapPotential = std::min(result.gapL, result.gapR),
+        .powerL = read<int>(info.at("Power vs LHP"s)),
+        .powerR = read<int>(info.at("Power vs RHP"s)),
+        .powerPotential = std::min(result.powerL, result.powerR),
+        .eyeL = read<int>(info.at("Eye/Patience vs LHP"s)),
+        .eyeR = read<int>(info.at("Eye/Patience vs RHP"s)),
+        .eyePotential = std::min(result.eyeL, result.eyeR),
+        .hbp = defaultHbp,
+        .speed = read<int>(info.at("Speed"s)),
+        .steal = read<int>(info.at("Stealing Ability"s)),
+        .baserunning = result.speed,
+        .buntSac = read<int>(info.at("Bunting"s)),
+        .buntHit = result.buntSac,
+
+        .gbTendency = read<GbTendency>(info.at("Hitting"s)),
+        .fbTendency = read<FbTendency>(info.at("Hitting"s)),
+    };
+
+    return result;
 }
 
-auto readFielding(AttributeMap const&) -> FieldingAttributes {
-    // TODO
-    return {};
+auto readBaseFieldingExperience(AttributeMap const& info) -> FieldingExperience {
+    using namespace std::literals;
+
+    auto const archetype = info.at("Archetype"s);
+    if (archetype == "Mr. Utility"sv) {
+        return mrUtilityFieldingExp;
+    }
+    return FieldingExperience {};
+}
+
+auto readFieldingExperience(AttributeMap const& info) -> FieldingExperience {
+    using namespace std::literals;
+
+    static constexpr auto position1Exp = 200;
+    static constexpr auto position2Exp = 150;
+    static constexpr auto position3Exp = 100;
+
+    auto result = readBaseFieldingExperience(info);
+
+    auto const position1 = read<Position>(info.at("1st Position"s));
+    result[position1] = position1Exp;
+
+    auto const position2 = read<Position>(info.at("2nd Position"s));
+    result[position2] = position2Exp;
+
+    auto const position3 = read<Position>(info.at("3rd Position"s));
+    result[position3] = position3Exp;
+
+    return result;
+}
+
+auto readFielding(AttributeMap const& info) -> FieldingAttributes {
+    using namespace std::literals;
+
+    FieldingAttributes result {
+        .rangeInfield = read<int>(info.at("Fielding Range"s)),
+        .rangeOutfield = result.rangeInfield,
+        .errorInfield = read<int>(info.at("Fielding Error"s)),
+        .errorOutfield = result.errorInfield,
+        .armInfield = read<int>(info.at("Fielding/Catching Arm"s)),
+        .armOutfield = result.armInfield,
+        .armCatcher = result.armInfield,
+        .abilityCatcher = read<int>(info.at("Catcher Ability"s)),
+        .tdp = read<int>(info.at("Turn Double Play"s)),
+
+        .experience = readFieldingExperience(info),
+    };
+
+    return result;
 }
 
 auto readPitching(AttributeMap const&) -> PitchingAttributes {
@@ -146,12 +221,14 @@ auto readBatter(AttributeMap const& info) -> Player {
 }
 
 auto readPitcher(AttributeMap const& info) -> Player {
-    return Player {
+    auto result = Player {
         .commonAttributes = readCommon(info),
         .battingAttributes = pitcherBatting,
         .fieldingAttributes = pitcherFielding,
         .pitchingAttributes = readPitching(info),
     };
+
+    return result;
 }
 
 auto readPlayer(AttributeMap const& info) -> Player {
