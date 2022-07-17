@@ -110,7 +110,6 @@ auto readCommon(AttributeMap const& info) -> CommonAttributes {
         .birthplace = info.at("Birthplace"s),
         .heightCm = read<Height>(info.at("Height"s)).cm,
         .weightLb = read<int>(info.at("Weight"s)),
-        .battingHandedness = read<BattingHandedness>(info.at("Bats"s)),
         .throwingHandedness = read<ThrowingHandedness>(info.at("Throws"s)),
         .position = read<Position>(info.at("Position"s)),
     };
@@ -124,6 +123,8 @@ auto readBatting(AttributeMap const& info) -> BattingAttributes {
     static constexpr auto defaultHbp = 5;
 
     BattingAttributes result {
+        .battingHandedness = read<BattingHandedness>(info.at("Bats"s)),
+
         .babipL = read<int>(info.at("BABIP vs LHP"s)),
         .babipR = read<int>(info.at("BABIP vs RHP"s)),
         .babipPotential = std::min(result.babipL, result.babipR),

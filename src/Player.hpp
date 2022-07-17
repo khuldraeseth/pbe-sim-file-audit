@@ -11,18 +11,6 @@
 #include "Read.hpp"
 
 
-enum class BattingHandedness {
-    Left,
-    Right,
-    Switch,
-};
-
-auto show(BattingHandedness handedness) -> std::string;
-
-template <>
-auto read<BattingHandedness>(std::string_view str) -> BattingHandedness;
-
-
 enum class ThrowingHandedness {
     Left,
     Right,
@@ -40,7 +28,6 @@ struct CommonAttributes {
     std::string birthplace;
     int heightCm;
     int weightLb;   // wtf, OOTP
-    BattingHandedness battingHandedness;
     ThrowingHandedness throwingHandedness;
     Position position;
 };

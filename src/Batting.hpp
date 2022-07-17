@@ -31,7 +31,21 @@ template <>
 auto read<FbTendency>(std::string_view str) -> FbTendency;
 
 
+enum class BattingHandedness {
+    Left,
+    Right,
+    Switch,
+};
+
+auto show(BattingHandedness handedness) -> std::string;
+
+template <>
+auto read<BattingHandedness>(std::string_view str) -> BattingHandedness;
+
+
 struct BattingAttributes {
+    BattingHandedness battingHandedness { BattingHandedness::Right };
+
     int babipL { 0 };
     int babipR { 0 };
     int babipPotential { 0 };
