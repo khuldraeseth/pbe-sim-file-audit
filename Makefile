@@ -1,14 +1,16 @@
 CXXFLAGS=--std=c++20 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3
-SRC=$(wildcard *.cpp)
-OBJ=$(SRC:.cpp=.o)
-DEP=$(SRC:.cpp=.d)
+BUILD=build/
+SRC=$(wildcard src/*.cpp)
+OBJ=$(addprefix $(BUILD),$(notdir $(SRC:.cpp=.o)))
+DEP=$(OBJ:.o=.d)
 LIB=-lcpr -lfmt -lpugixml -ltidy
 EXE=sim-file-audit
 
 $(EXE): $(OBJ)
 	$(CXX) $(LIB) -o $(EXE) $(OBJ)
 
-%.o: %.cpp
+$(BUILD)%.o: src/%.cpp
+	@mkdir -p $(BUILD)
 	$(CXX) $(CXXFLAGS) -MMD -MP -o $@ -c $<
 
 .PHONY: clean
