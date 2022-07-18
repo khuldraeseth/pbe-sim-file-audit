@@ -1,8 +1,5 @@
 #include "Team.hpp"
 
-#include <algorithm>
-#include <array>
-#include <iterator>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -77,18 +74,40 @@ template <>
 auto read<Franchise>(std::string_view str) -> Franchise {
     using namespace std::literals;
 
-    static auto constexpr abbreviations = std::to_array({
-      "NYV"sv, "OBX"sv, "PRO"sv, "SAS"sv, "DVS"sv, "VAN"sv, "ANC"sv, "FLA"sv, "SCSS"sv,
-      "AMA"sv, "SAR"sv, "BOI"sv, "CUN"sv, "NSH"sv, "KC"sv,  "PR"sv,  "CAL"sv, "CHI"sv,
-      "NO"sv,  "DET"sv, "IND"sv, "MAU"sv, "BCB"sv, "LL"sv,  "BUF"sv, "SEA"sv,
-    });
+    static std::unordered_map<std::string_view, Franchise> const franchises {
+        { "NYV"sv,  Franchise::NYV},
+        { "OBX"sv,  Franchise::OBX},
+        { "PRO"sv,  Franchise::PRO},
+        { "SAS"sv,  Franchise::SAS},
+        { "DVS"sv,  Franchise::DVS},
+        { "VAN"sv,  Franchise::VAN},
+        { "ANC"sv,  Franchise::ANC},
+        { "FLA"sv,  Franchise::FLA},
+        {"SCSS"sv, Franchise::SCSS},
+        { "AMA"sv,  Franchise::AMA},
+        { "SAR"sv,  Franchise::SAR},
+        { "BOI"sv,  Franchise::BOI},
+        { "CUN"sv,  Franchise::CUN},
+        { "NSH"sv,  Franchise::NSH},
+        {  "KC"sv,   Franchise::KC},
+        {  "PR"sv,   Franchise::PR},
+        { "CAL"sv,  Franchise::CAL},
+        { "CHI"sv,  Franchise::CHI},
+        {  "NO"sv,   Franchise::NO},
+        { "DET"sv,  Franchise::DET},
+        { "IND"sv,  Franchise::IND},
+        { "MAU"sv,  Franchise::MAU},
+        { "BCB"sv,  Franchise::BCB},
+        {  "LL"sv,   Franchise::LL},
+        { "BUF"sv,  Franchise::BUF},
+        { "SEA"sv,  Franchise::SEA},
+    };
 
-    auto const it = std::find(std::cbegin(abbreviations), std::cend(abbreviations), str);
-    if (it == std::cend(abbreviations)) {
+    if (not franchises.contains(str)) {
         throw std::runtime_error(fmt::format("Failed to parse franchise: {}"sv, str));
     }
 
-    return static_cast<Franchise>(std::distance(std::cbegin(abbreviations), it));
+    return franchises.at(str);
 }
 
 auto nameOf(Franchise franchise) -> std::string {
@@ -116,7 +135,7 @@ auto nameOf(Franchise franchise) -> std::string {
         {  Franchise::NO,      "New Orleans Rougarous"s},
         { Franchise::DET,             "Detroit Demons"s},
         { Franchise::IND,          "Indianapolis Apex"s},
-        { Franchise::MAU,                 "Maui Makos"s},
+        { Franchise::MAU,              "Kashima Foxes"s}, // bruh, Hydra
         { Franchise::BCB,            "Brew City Bears"s},
         {  Franchise::LL,          "Louisville Lemurs"s},
         { Franchise::BUF,              "Buffalo Surge"s},

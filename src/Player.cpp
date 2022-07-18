@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 #include <fmt/core.h>
 
@@ -26,12 +27,17 @@ template <>
 auto read<ThrowingHandedness>(std::string_view str) -> ThrowingHandedness {
     using namespace std::literals;
 
-    if (str == "Right"sv) {
-        return ThrowingHandedness::Right;
-    }
-    if (str == "Left"sv) {
-        return ThrowingHandedness::Left;
+    static std::unordered_map<std::string_view, ThrowingHandedness> const handednesses {
+        {"Right"sv, ThrowingHandedness::Right},
+        { "Left"sv,  ThrowingHandedness::Left},
+
+        {    "R"sv, ThrowingHandedness::Right},
+        {    "L"sv,  ThrowingHandedness::Left},
+    };
+
+    if (not handednesses.contains(str)) {
+        throw std::runtime_error { fmt::format("Failed to parse throwing handedness: {}"sv, str) };
     }
 
-    throw std::runtime_error { fmt::format("Failed to parse throwing handedness: {}"sv, str) };
+    return handednesses.at(str);
 }

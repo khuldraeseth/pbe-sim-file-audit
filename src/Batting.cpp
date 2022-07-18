@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 #include <fmt/core.h>
 
@@ -30,19 +31,24 @@ template <>
 auto read<GbTendency>(std::string_view str) -> GbTendency {
     using namespace std::literals;
 
-    if (str == "Spray"sv) {
-        return GbTendency::Spray;
+    static std::unordered_map<std::string_view, GbTendency> const gbTendencies {
+        {       "Spray"sv,       GbTendency::Spray},
+        {      "Normal"sv,      GbTendency::Normal},
+        {        "Pull"sv,        GbTendency::Pull},
+        {"Extreme Pull"sv, GbTendency::ExtremePull},
+
+        {"Extreme pull"sv, GbTendency::ExtremePull},
+
+        {       "spray"sv,       GbTendency::Spray},
+        {      "normal"sv,      GbTendency::Normal},
+        {        "pull"sv,        GbTendency::Pull},
+        {"extreme pull"sv, GbTendency::ExtremePull},
+    };
+
+    if (not gbTendencies.contains(str)) {
+        throw std::runtime_error { fmt::format("Failed to parse ground ball tendency: {}"sv, str) };
     }
-    if (str == "Normal"sv) {
-        return GbTendency::Normal;
-    }
-    if (str == "Pull"sv) {
-        return GbTendency::Pull;
-    }
-    if (str == "Extreme Pull"sv) {
-        return GbTendency::ExtremePull;
-    }
-    throw std::runtime_error { fmt::format("Failed to parse ground ball tendency: {}"sv, str) };
+    return gbTendencies.at(str);
 }
 
 
@@ -65,20 +71,25 @@ template <>
 auto read<FbTendency>(std::string_view str) -> FbTendency {
     using namespace std::literals;
 
-    if (str == "Spray"sv) {
-        return FbTendency::Spray;
+    static std::unordered_map<std::string_view, FbTendency> const fbTendencies {
+        {       "Spray"sv,  FbTendency::Spray},
+        {      "Normal"sv, FbTendency::Normal},
+        {        "Pull"sv,   FbTendency::Pull},
+
+        {       "spray"sv,  FbTendency::Spray},
+        {      "normal"sv, FbTendency::Normal},
+        {        "pull"sv,   FbTendency::Pull},
+
+ // Weird case—Extreme Pull hitters have Pull fly ball tendency because Extreme Pull is not an option.
+        {"Extreme Pull"sv,   FbTendency::Pull},
+        {"Extreme pull"sv,   FbTendency::Pull},
+        {"extreme pull"sv,   FbTendency::Pull},
+    };
+
+    if (not fbTendencies.contains(str)) {
+        throw std::runtime_error { fmt::format("Failed to parse fly ball tendency: {}"sv, str) };
     }
-    if (str == "Normal"sv) {
-        return FbTendency::Normal;
-    }
-    if (str == "Pull"sv) {
-        return FbTendency::Pull;
-    }
-    // Weird case—Extreme Pull hitters have Pull fly ball tendency because Extreme Pull is not an option.
-    if (str == "Extreme Pull"sv) {
-        return FbTendency::Pull;
-    }
-    throw std::runtime_error { fmt::format("Failed to parse fly ball tendency: {}"sv, str) };
+    return fbTendencies.at(str);
 }
 
 
@@ -101,15 +112,19 @@ template <>
 auto read<BattingHandedness>(std::string_view str) -> BattingHandedness {
     using namespace std::literals;
 
-    if (str == "Right"sv) {
-        return BattingHandedness::Right;
-    }
-    if (str == "Left"sv) {
-        return BattingHandedness::Left;
-    }
-    if (str == "Switch"sv) {
-        return BattingHandedness::Switch;
+    static std::unordered_map<std::string_view, BattingHandedness> const handednesses {
+        { "Right"sv, BattingHandedness::Right},
+        {  "Left"sv,  BattingHandedness::Left},
+        {"Switch"sv,  BattingHandedness::Left},
+
+        {     "R"sv, BattingHandedness::Right},
+        {     "L"sv,  BattingHandedness::Left},
+        {     "S"sv,  BattingHandedness::Left},
+    };
+
+    if (not handednesses.contains(str)) {
+        throw std::runtime_error { fmt::format("Failed to parse batting handedness: {}"sv, str) };
     }
 
-    throw std::runtime_error { fmt::format("Failed to parse batting handedness: {}"sv, str) };
+    return handednesses.at(str);
 }

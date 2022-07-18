@@ -1,13 +1,20 @@
 #include <iostream>
 
-#include "FromForum.hpp"
+#include "PlayerFromForum.hpp"
+#include "Team.hpp"
+#include "TeamFromForum.hpp"
 
 
 auto main() -> int {
-    std::cout << "Entry point not yet implemented" << std::endl;
+    using namespace std::literals;
 
-    static constexpr auto topicId = 18379;
-    auto evok = readPlayer(topicId);
+    std::cout << "Entry point not yet implemented"sv << std::endl;
+
+    // static constexpr auto topicId = 24107;
+    // auto const player = readPlayer(topicId);
+
+    static constexpr auto franchise = "BCB"sv;
+    auto const team = readTeam(franchise);
 
     return 0;
 }

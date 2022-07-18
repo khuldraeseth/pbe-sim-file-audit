@@ -50,7 +50,7 @@ auto read<Position>(std::string_view str) -> Position {
     static std::unordered_map<std::string_view, Position> const positions {
         {               "SP"sv,  Position::StartingPitcher},
         {               "RP"sv,    Position::ReliefPitcher},
-        {               "CP"sv,   Position::ClosingPitcher},
+        {               "CL"sv,   Position::ClosingPitcher},
         {                "C"sv,          Position::Catcher},
         {               "1B"sv,        Position::FirstBase},
         {               "2B"sv,       Position::SecondBase},

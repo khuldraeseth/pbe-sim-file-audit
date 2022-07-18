@@ -116,7 +116,7 @@ auto read<std::chrono::month_day>(std::string_view str) -> std::chrono::month_da
 
     static boost::regex const wordsLong { R"pcre(\s*(\w+)\s+(\w+)(:?th)?,?\s+(\d+)\s+(\d+)\s*)pcre"s };
     static boost::regex const wordsMedium { R"pcre(\s*(\w+)\s+(\d+)(:?th)?,?\s+(\d+)\s*)pcre"s };
-    static boost::regex const wordsShort { R"pcre(\s*(\w+)\s+(\d+)\s*)pcre"s };
+    static boost::regex const wordsShort { R"pcre(\s*(\w+)\s+(\d+)(:?th)?\s*)pcre"s };
     static boost::regex const ymd { R"pcre(\s*(\d{4})[-./](\d{1,2})[-./](\d{1,2})\s*)pcre"s };
     static boost::regex const mdy { R"pcre(\s*(\d{1,2})[-./](\d{1,2})[-./](\d{4})\s*)pcre"s };
     boost::smatch what;

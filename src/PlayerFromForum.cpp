@@ -9,10 +9,13 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/find_iterator.hpp>
+#include <boost/algorithm/string/finder.hpp>
 #include <boost/algorithm/string/regex.hpp>
 #include <boost/regex.hpp>
 #include <cpr/cpr.h>
@@ -40,10 +43,31 @@ auto valueOr(Container const& container, Key const& key, Value const& defaultVal
     return container.at(key);
 }
 
+template <typename Container, typename Value = typename Container::mapped_type>
+auto valueOfAny(Container const&) -> Value {
+    using namespace std::literals;
+
+    throw std::out_of_range { "valueOfAny: no matching key found"s };
+}
+
+template <typename Container, typename Key, typename... Keys, typename Value = typename Container::mapped_type>
+auto valueOfAny(Container const& container, Key const& key, Keys const&... keys) -> Value {
+    if (not container.contains(key)) {
+        return valueOfAny(container, keys...);
+    }
+
+    return container.at(key);
+}
+
 
 auto deparenthesize(std::string const& str) -> std::string {
-    // possible TODO: use a Finder instead of a regex
     static boost::regex const pattern { R"pcre(\((?:.|(?R))*?\))pcre" };
+    static boost::regex const patternUnbalanced { R"pcre(^[^(]*?\))pcre" };
+    return boost::erase_all_regex_copy(boost::erase_all_regex_copy(str, pattern), patternUnbalanced);
+}
+
+auto debracketize(std::string const& str) -> std::string {
+    static boost::regex const pattern { R"pcre(\[(?:.|(?R))*?\])pcre" };
     return boost::erase_all_regex_copy(str, pattern);
 }
 
@@ -54,20 +78,21 @@ auto readAttributes(pugi::xpath_node_set const& nodes) -> AttributeMap {
 
     for (auto it = std::begin(nodes); it != std::end(nodes); ++it) {
         auto const line = it->node().text().as_string();
-        auto text = boost::trim_copy(deparenthesize(line));
+        auto text = boost::trim_copy(debracketize(deparenthesize(line)));
         if (std::empty(text)) {
             continue;
         }
 
         static constexpr auto toIgnore = std::to_array({
-          "Attributes"sv,
-          "Positions"sv,
           "College"sv,
           "Recruited by"sv,
           "Username"sv,
           "Number"sv,
           "Player Render"sv,
           "Discord name"sv,
+          "Bank"sv,
+          "Banked"sv,
+          "Banked TPE"sv,
         });
         if (std::any_of(std::cbegin(toIgnore), std::cend(toIgnore),
                         [&text](auto const& s) { return boost::contains(text, s); })) {
@@ -75,6 +100,17 @@ auto readAttributes(pugi::xpath_node_set const& nodes) -> AttributeMap {
         }
 
         if (text.back() == ':') {
+            static constexpr auto toIgnoreIfAlone = std::to_array({
+              "Attributes"sv,
+              "Positions"sv,
+              "Birthdate"sv,
+              "Recruited"sv,
+            });
+            if (std::any_of(std::cbegin(toIgnoreIfAlone), std::cend(toIgnoreIfAlone),
+                            [&text](auto const& s) { return boost::contains(text, s); })) {
+                continue;
+            }
+
             ++it;
             if (it == std::end(nodes)) {
                 text.pop_back();
@@ -82,10 +118,10 @@ auto readAttributes(pugi::xpath_node_set const& nodes) -> AttributeMap {
                                                        text) };
             }
             auto const nextLine = it->node().text().as_string();
-            text += boost::trim_copy(deparenthesize(nextLine));
+            text += boost::trim_copy(debracketize(deparenthesize(nextLine)));
         }
 
-        static constexpr auto delimiter { ":" };
+        static constexpr auto delimiter = ":"sv;
         if (not boost::contains(text, delimiter)) {
             continue;
         }
@@ -218,6 +254,8 @@ auto readBatting(AttributeMap const& info) -> BattingAttributes {
 
     static constexpr auto defaultHbp = 5;
 
+    auto const hittingTendency = valueOfAny(info, "Hitting"s, "Hitter Type"s);
+
     BattingAttributes result {
         .battingHandedness = read<BattingHandedness>(info.at("Bats"s)),
 
@@ -243,8 +281,8 @@ auto readBatting(AttributeMap const& info) -> BattingAttributes {
         .buntSac = read<int>(info.at("Bunting"s)),
         .buntHit = result.buntSac,
 
-        .gbTendency = read<GbTendency>(info.at("Hitting"s)),
-        .fbTendency = read<FbTendency>(info.at("Hitting"s)),
+        .gbTendency = read<GbTendency>(hittingTendency),
+        .fbTendency = read<FbTendency>(hittingTendency),
     };
 
     return result;
@@ -260,6 +298,38 @@ auto readBaseFieldingExperience(AttributeMap const& info) -> FieldingExperience 
     return FieldingExperience {};
 }
 
+auto readPositionsTogether(AttributeMap const& info) -> std::tuple<Position, Position, Position> {
+    using namespace std::literals;
+
+    auto const text = info.at("Positions"s);
+
+    static constexpr auto delimiter = ";"sv;
+    auto const finder = boost::first_finder(delimiter);
+    auto it = boost::make_split_iterator(text, finder);
+
+    auto const position1 = read<Position>(boost::trim_copy(std::string { std::cbegin(*it), std::cend(*it) }));
+    ++it;
+    auto const position2 = read<Position>(boost::trim_copy(std::string { std::cbegin(*it), std::cend(*it) }));
+    ++it;
+    auto const position3 = read<Position>(boost::trim_copy(std::string { std::cbegin(*it), std::cend(*it) }));
+    return std::make_tuple(position1, position2, position3);
+}
+
+auto readPositions(AttributeMap const& info) -> std::tuple<Position, Position, Position> {
+    using namespace std::literals;
+
+    std::vector<AttributeMap::value_type> const attributes(std::cbegin(info), std::cend(info));
+
+    if (info.contains("Positions"s)) {
+        return readPositionsTogether(info);
+    }
+
+    auto const position1 = read<Position>(info.at("1st Position"s));
+    auto const position2 = read<Position>(info.at("2nd Position"s));
+    auto const position3 = read<Position>(info.at("3rd Position"s));
+    return std::make_tuple(position1, position2, position3);
+}
+
 auto readFieldingExperience(AttributeMap const& info) -> FieldingExperience {
     using namespace std::literals;
 
@@ -269,13 +339,9 @@ auto readFieldingExperience(AttributeMap const& info) -> FieldingExperience {
 
     auto result = readBaseFieldingExperience(info);
 
-    auto const position1 = read<Position>(info.at("1st Position"s));
+    auto const [position1, position2, position3] = readPositions(info);
     result[position1] = position1Exp;
-
-    auto const position2 = read<Position>(info.at("2nd Position"s));
     result[position2] = position2Exp;
-
-    auto const position3 = read<Position>(info.at("3rd Position"s));
     result[position3] = position3Exp;
 
     return result;
@@ -285,11 +351,11 @@ auto readFielding(AttributeMap const& info) -> FieldingAttributes {
     using namespace std::literals;
 
     FieldingAttributes result {
-        .rangeInfield = read<int>(info.at("Fielding Range"s)),
+        .rangeInfield = read<int>(valueOfAny(info, "Fielding Range"s, "Range"s)),
         .rangeOutfield = result.rangeInfield,
-        .errorInfield = read<int>(info.at("Fielding Error"s)),
+        .errorInfield = read<int>(valueOfAny(info, "Fielding Error"s, "Error"s)),
         .errorOutfield = result.errorInfield,
-        .armInfield = read<int>(info.at("Fielding/Catching Arm"s)),
+        .armInfield = read<int>(valueOfAny(info, "Fielding/Catching Arm"s, "Arm"s)),
         .armOutfield = result.armInfield,
         .armCatcher = result.armInfield,
         .abilityCatcher = read<int>(info.at("Catcher Ability"s)),
@@ -314,16 +380,16 @@ auto readPitching(AttributeMap const& info) -> PitchingAttributes {
         .hold = read<int>(info.at("Holding Runners"s)),
         .armSlot = read<ArmSlot>(info.at("Arm Slot"s)),
 
-        .movementL = read<int>(info.at("Movement vs LHB"s)),
-        .movementR = read<int>(info.at("Movement vs. RHB"s)),
+        .movementL = read<int>(valueOfAny(info, "Movement vs LHB"s, "Movement vs. LHB"s)),
+        .movementR = read<int>(valueOfAny(info, "Movement vs RHB"s, "Movement vs. RHB"s)),
         .movementPotential = std::min(result.movementL, result.movementR),
-        .controlL = read<int>(info.at("Control vs. LHB"s)),
-        .controlR = read<int>(info.at("Control vs. RHB"s)),
+        .controlL = read<int>(valueOfAny(info, "Control vs LHB"s, "Control vs. LHB"s)),
+        .controlR = read<int>(valueOfAny(info, "Control vs RHB"s, "Control vs. RHB"s)),
         .controlPotential = std::min(result.controlL, result.controlR),
         .hbp = defaultHbp,
         .wp = defaultWp,
         .balk = defaultBalk,
-        .gb = read<int>(info.at("GB%"s)),
+        .gb = read<int>(valueOfAny(info, "GB%"s, "Groundball Percentage"s)),
 
         .fastball = read<int>(valueOr(info, "Fastball"s, "0"s)),
         .sinker = read<int>(valueOr(info, "Sinker"s, "0"s)),

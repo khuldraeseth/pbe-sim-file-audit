@@ -20,9 +20,9 @@ template <>
 auto read<Height>(std::string_view str) -> Height {
     using namespace std::literals;
 
-    static boost::regex const feetInchesTicks { R"pcre((\d+)\s*'\s*(\d+)\s*"?)pcre"s };
-    static boost::regex const feetInchesWords { R"pcre((\d+)\s*f(?:ee)?t\s*(\d+)\s*in(?:ches)?)pcre"s };
-    static boost::regex const ernieHarwell { R"pcre((\d+))pcre"s };
+    static boost::regex const feetInchesTicks { R"pcre((\d+)\s*(?:'|′)\s*(\d+)\s*(?:"|''|″)?)pcre"s };
+    static boost::regex const feetInchesWords { R"pcre((\d+)\s*f(?:ee)?t\s*(\d+)\s*(?:in(?:ches)?)?)pcre"s };
+    static boost::regex const ernieHarwell { R"pcre((\d+)\s*(?:'|′)?)pcre"s };
     boost::smatch what {};
 
     if (boost::regex_match(std::string { str }, what, feetInchesTicks)) {
