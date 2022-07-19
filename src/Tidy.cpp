@@ -7,10 +7,16 @@
 
 
 namespace htmlTidy {
+#if __has_include(<tidy/tidy.h>)
+#include <tidy/tidy.h>
+#include <tidy/tidybuffio.h>
+#include <tidy/tidyenum.h>
+#else
 #include <tidy.h>
 #include <tidybuffio.h>
 #include <tidyenum.h>
-}
+#endif
+}   // namespace htmlTidy
 
 
 auto tidy(std::string_view text) -> std::string {
