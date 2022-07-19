@@ -28,7 +28,7 @@ add_executable(sfa
     src/Xml.cpp
 )
 
-target_link_libraries(sfa PRIVATE fmt pugixml tidy)
+target_link_libraries(sfa PRIVATE boost_regex fmt pugixml tidy)
 
 include(FetchContent)
 FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git
