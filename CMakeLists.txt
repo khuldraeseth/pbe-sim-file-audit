@@ -7,7 +7,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(DEFAULT_BUILD_TYPE "Debug")
 
-cmake_policy(SET CMP0115 NEW)
+if ("${CMAKE_VERSION}" VERSION_GREATER_EQUAL 3.20)
+    cmake_policy(SET CMP0115 NEW)
+endif()
 
 add_executable(sfa
     src/sfa.cpp
