@@ -130,12 +130,12 @@ auto nameOf(Franchise franchise) -> std::string {
         { Franchise::NSH,            "Nashville Stars"s},
         {  Franchise::KC,        "Kansas City Hepcats"s},
         {  Franchise::PR,          "Puerto Rico Ranas"s},
-        { Franchise::CAL,       "California Firehawks"s},
+        { Franchise::CAL,       "San Bernardino 66ers"s}, // bruh, Hydra
         { Franchise::CHI,           "Chicago Kingpins"s},
         {  Franchise::NO,      "New Orleans Rougarous"s},
         { Franchise::DET,             "Detroit Demons"s},
         { Franchise::IND,          "Indianapolis Apex"s},
-        { Franchise::MAU,              "Kashima Foxes"s}, // bruh, Hydra
+        { Franchise::MAU,              "Kashima Foxes"s},
         { Franchise::BCB,            "Brew City Bears"s},
         {  Franchise::LL,          "Louisville Lemurs"s},
         { Franchise::BUF,              "Buffalo Surge"s},

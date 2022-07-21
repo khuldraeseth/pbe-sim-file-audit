@@ -67,10 +67,13 @@ auto read<Position>(std::string_view str) -> Position {
         {          "Catcher"sv,          Position::Catcher},
         {       "First Base"sv,        Position::FirstBase},
         {    "First Baseman"sv,        Position::FirstBase},
+        {         "1st Base"sv,        Position::FirstBase},
         {      "Second Base"sv,       Position::SecondBase},
         {   "Second Baseman"sv,       Position::SecondBase},
+        {         "2nd Base"sv,       Position::SecondBase},
         {       "Third Base"sv,        Position::ThirdBase},
         {    "Third Baseman"sv,        Position::ThirdBase},
+        {         "3rd Base"sv,        Position::ThirdBase},
         {        "Shortstop"sv,        Position::Shortstop},
         {       "Left Field"sv,        Position::LeftField},
         {     "Left Fielder"sv,        Position::LeftField},
@@ -79,6 +82,8 @@ auto read<Position>(std::string_view str) -> Position {
         {      "Right Field"sv,       Position::RightField},
         {    "Right Fielder"sv,       Position::RightField},
         {"Designated Hitter"sv, Position::DesignatedHitter},
+
+        {            "RP/CL"sv,   Position::ClosingPitcher},
     };
 
     if (not positions.contains(str)) {

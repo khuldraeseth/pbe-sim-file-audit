@@ -39,6 +39,8 @@ auto read<ArmSlot>(std::string_view str) -> ArmSlot {
 
         {"Over the Top"sv, ArmSlot::OverTheTop},
         {"Over The Top"sv, ArmSlot::OverTheTop},
+
+        {  "Normal 3/4"sv,     ArmSlot::Normal},
     };
 
     if (not armSlots.contains(str)) {

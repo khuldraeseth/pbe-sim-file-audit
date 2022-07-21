@@ -88,7 +88,7 @@ auto readAttributes(pugi::xpath_node_set const& nodes) -> AttributeMap {
           "Recruited by"sv,
           "Username"sv,
           "Number"sv,
-          "Player Render"sv,
+          "Render"sv,
           "Discord name"sv,
           "Bank"sv,
           "Banked"sv,
@@ -291,7 +291,7 @@ auto readBatting(AttributeMap const& info) -> BattingAttributes {
 auto readBaseFieldingExperience(AttributeMap const& info) -> FieldingExperience {
     using namespace std::literals;
 
-    auto const archetype = info.at("Hitting Archetype"s);
+    auto const archetype = valueOfAny(info, "Hitting Archetype"s, "Player Archetype"s, "Archetype"s);
     if (archetype == "Mr. Utility"sv) {
         return mrUtilityFieldingExp;
     }
@@ -389,7 +389,8 @@ auto readPitching(AttributeMap const& info) -> PitchingAttributes {
         .hbp = defaultHbp,
         .wp = defaultWp,
         .balk = defaultBalk,
-        .gb = read<int>(valueOfAny(info, "GB%"s, "Groundball Percentage"s)),
+        .gb = read<int>(valueOfAny(info, "GB%"s, "Groundball Percentage"s, "Groundball percentage"s,
+                                   "GroundBall Percentage"s, "Ground Ball Percentage"s)),
 
         .fastball = read<int>(valueOr(info, "Fastball"s, "0"s)),
         .sinker = read<int>(valueOr(info, "Sinker"s, "0"s)),
@@ -465,8 +466,50 @@ auto readPlayer(cpr::Url const& url) -> Player {
 auto readPlayer(int topicId) -> Player {
     using namespace std::literals;
 
+    // static std::unordered_set<int> const toIgnore {
+    //     // malformed
+    //     21352,   // Big Iz
+    //     23096,   // Giuseppe Jones
+    //     18413,   // Wade Cilliams
+    //     23169,   // Richard Diamond
+    //     25984,   // Dillon LeBlanc
+    //     22825,   // Ringo Starr
+    //     24079,   // Blake Faux Jr.
+    //     24934,   // KC Mize
+    //     24354,   // Spruce Butter
+    //     17126,   // Joshua Vanderbilt
+    //     13647,   // Ryan Shue
+    //     14002,   // Toot Blan
+    //     17456,   // Andy Myth
+    //     25647,   // Mike Forbis Jr.
+    //     25362,   // Matthew West
+    //     25759,   // Tyrone White
+    //     23120,   // Cassius Bright
+    //     18396,   // James Barker
+    //     22564,   // Legalize Tampering
+    //     21121,   // PM Schramm
+    //     22332,   // Kevin Larson
+    //     17546,   // Booze Gooser
+
+    //     // to fix later
+    //     15370,   // Tex Walker
+    //     13920,   // Herbie Farnworth
+    //     25806,   // Cookie Monster
+    //     22296,   // Billie Nelson
+    //     26318,   // Grayson Yates
+    //     20626,   // Jet Stargasm
+    //     20541,   // Cameron Grimes
+    //     25656,   // Al Celdred
+    //     20845,   // Newfoundland Berserker
+    //     16920,   // Danny Sullivan
+    // };
+
+    // if (toIgnore.contains(topicId)) {
+    //     return Player {};
+    // }
+
     static constexpr auto urlPattern
-      = "https://probaseballexperience.jcink.net/index.php?act=Print&client=printer&t={}"sv;
+      = "http://probaseballexperience.jcink.net/index.php?act=Print&client=printer&t={}"sv;
     auto result = readPlayer(fmt::format(urlPattern, topicId));
     return result;
 }
